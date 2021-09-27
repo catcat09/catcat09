@@ -1,0 +1,56 @@
+
+
+%% Declaring some global variables
+global R Q V Ci
+R=8.314; % gas constant J/mol.K
+%% define input variables
+T=400; 
+t_exp=100; % experimental time in min
+Ci=[8000 8000 0 0]'; % initial concentrations mol/m3
+QA=0.004;
+QB=0.004;
+Q= QA+QB;
+V=100;
+%% Kinetic parameters
+
+Ef(1)=69.71e3; % J/mol
+Ef(2)=139.4e3; % J/mol
+Arf(1)=4.239e3; % m3/(mol.s)
+Arf(2)=3.631e13; % m3/(mol.s)
+
+%% Preparing to call ode-solver routine
+t_span=0:1:t_exp;
+options = odeset('RelTol',1e-4,'AbsTol',[1e-5 1e-5 1e-5 1e-5]);
+[t,C] = ode15s(@m_balance,t_span,Ci,options,Arf,Ef);
+C
+
+%% Visualizing the results
+figure(1)
+plot(t,C(:,1),'b');   
+hold on
+plot(t,C(:,2),'g');
+plot(t,C(:,3),'r');
+plot(t,C(:,4),'y');
+xlabel('Time / [s]');
+ylabel('Concentration / [mol/m^3]');
+legend('Ca','Cb','Cc','Cd')
+title('Component concentrations')
+
+hold off
+figure(2)
+plot(t,(Ci(1)-C(:,1))/Ci(1),'b');  
+title('Conversion')
+
+
+function dCdt=m_balance(t,C,Arf,Ef) 
+global T R V Q Ci
+kref=zeros(2,1);
+for i=1:2
+kref(i)=Arf(i)*exp(-Ef(i)/(R*T)); % Solving the arrhenius equation
+end
+dCdt = zeros(4,1); % a column vector
+dCdt(1) = Q/V*(Ci(1)-C(1))+kref(2)*C(3)*C(4)-kref(1)*C(1)*C(2); % mass balance for A
+dCdt(2) = Q/V*(Ci(2)-C(2))+kref(2)*C(3)*C(4)-kref(1)*C(1)*C(2); % mass balance for B
+dCdt(3) = Q/V*(Ci(3)-C(3))-kref(2)*C(3)*C(4)+kref(1)*C(1)*C(2); % mass balance for C
+dCdt(4) = Q/V*(Ci(4)-C(4))-kref(2)*C(3)*C(4)+kref(1)*C(1)*C(2); % mass balance for C
+end
